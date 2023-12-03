@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { SignInDto } from './dto/signin.dto';
 import { SignUpDto } from './dto/signup.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -18,16 +18,24 @@ export class AuthService {
                 }
             });
             if (emailUsed) {
-                throw new HttpException('Email already used', HttpStatus.BAD_REQUEST);
+                throw new BadRequestException('Email already used');
             }
+            const date= new Date(dto.dateOfBirth);
+            const age = new Date().getFullYear() - date.getFullYear();
+            if (age < 18) {
+               
+                throw new BadRequestException('You must be at least 18 years old');
+            };
+
             const user = await this.prisma.user.create({
                 data: {
                     email: dto.email,
                     password,
                     username: dto.username,
+                    dateOfBirth: date,
                 },
             });
-            
+
             return this.signToken(user.id);
         } catch (error) {
             throw error;
