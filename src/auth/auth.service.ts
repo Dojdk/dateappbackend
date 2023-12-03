@@ -2,11 +2,12 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { SignInDto } from './dto/signin.dto';
 import { SignUpDto } from './dto/signup.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { JwtService } from '@nestjs/jwt';
 import * as argon from 'argon2';
 
 @Injectable()
 export class AuthService {
-    constructor(private prisma: PrismaService) { }
+    constructor(private prisma: PrismaService, private jwtService: JwtService) { }
 
     async signUp(dto: SignUpDto) {
         const password = await argon.hash(dto.password);
@@ -26,8 +27,8 @@ export class AuthService {
                     username: dto.username,
                 },
             });
-
-            return user;
+            
+            return this.signToken(user.id);
         } catch (error) {
             throw error;
         }
@@ -50,9 +51,14 @@ export class AuthService {
                 throw new HttpException('Invalid credentials', HttpStatus.BAD_REQUEST);
             }
 
-            return user;
+            return this.signToken(user.id);
         } catch (error) {
             throw error;
         }
     }
+    async signToken(userId: number,): Promise<{ access_token: string }> {
+        const payload = { sub: userId };
+        const accessToken = this.jwtService.sign(payload);
+        return { access_token: accessToken };
+    };
 }
